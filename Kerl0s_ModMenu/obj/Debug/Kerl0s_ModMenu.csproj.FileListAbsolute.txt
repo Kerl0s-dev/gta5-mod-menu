@@ -1,9 +1,0 @@
-C:\Users\User\source\repos\GTA5_Mods\Kerl0s_ModMenu\bin\Debug\Kerl0s_ModMenu.dll
-C:\Users\User\source\repos\GTA5_Mods\Kerl0s_ModMenu\bin\Debug\Kerl0s_ModMenu.pdb
-C:\Users\User\source\repos\GTA5_Mods\Kerl0s_ModMenu\bin\Debug\ScriptHookVDotNet3.dll
-C:\Users\User\source\repos\GTA5_Mods\Kerl0s_ModMenu\bin\Debug\ScriptHookVDotNet3.xml
-C:\Users\User\source\repos\GTA5_Mods\Kerl0s_ModMenu\obj\Debug\Kerl0s_ModMenu.csproj.AssemblyReference.cache
-C:\Users\User\source\repos\GTA5_Mods\Kerl0s_ModMenu\obj\Debug\Kerl0s_ModMenu.csproj.CoreCompileInputs.cache
-C:\Users\User\source\repos\GTA5_Mods\Kerl0s_ModMenu\obj\Debug\Kerl0s_M.01EE7C73.Up2Date
-C:\Users\User\source\repos\GTA5_Mods\Kerl0s_ModMenu\obj\Debug\Kerl0s_ModMenu.dll
-C:\Users\User\source\repos\GTA5_Mods\Kerl0s_ModMenu\obj\Debug\Kerl0s_ModMenu.pdb
