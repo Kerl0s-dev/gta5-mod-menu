@@ -1,9 +1,9 @@
 ﻿using GTA.Native;
 using System.Drawing;
 
-namespace Kerl0s_ModMenu.Utils
+namespace Kerl0s_ModMenu.UI
 {
-    internal class UI
+    public static class UIDrawer
     {
         public static void DrawRect(float x, float y, float width, float height, int r, int g, int b, int a)
         {
@@ -76,6 +76,5 @@ namespace Kerl0s_ModMenu.Utils
         {
             return (value < min) ? min : (value > max) ? max : value;
         }
-
     }
 }
