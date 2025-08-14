@@ -31,11 +31,7 @@ public class Program : Script
         player = Game.Player.Character;
         car = Game.Player.Character.CurrentVehicle;
 
-        Function.Call(Hash.GIVE_WEAPON_TO_PED, player, WeaponHash.Parachute, 1, false, false);
-
-        CashManager.OnTick(54321);
-
-        Game.Player.WantedLevel = 0;
+        CashManager.OnTick(10000);
 
         if (MenuManager.IsOpen)
         {
@@ -59,25 +55,6 @@ public class Program : Script
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
         if (e.KeyCode == Keys.F4) { MenuManager.ToggleMenu(); Audio.PlaySoundFrontendAndForget("NO", "HUD_FRONTEND_DEFAULT_SOUNDSET"); };
-
-        if (e.KeyCode == Keys.Add) Game.Player.Character.ApplyForce(GTA.Math.Vector3.WorldUp * 100000);
-        if (e.KeyCode == Keys.NumPad0) Game.Player.Character.ApplyForce(GTA.Math.Vector3.WorldUp * -100000);
-
-        if(e.KeyCode == Keys.O) {
-            foreach (var veh in World.GetNearbyVehicles(Game.Player.Character, 1000))
-            {
-                veh.Delete();
-            }
-        }
-
-        if (e.KeyCode == Keys.J)
-        {
-            for (int i = 0; i < 10; i++)
-            {
-                World.CreateVehicle(VehicleHash.Panto, Game.Player.Character.Position + Game.Player.Character.ForwardVector * 5);
-                Wait(100);
-            }
-        }
 
         if (e.KeyCode == Keys.K) GiveAllWeapons();
 
