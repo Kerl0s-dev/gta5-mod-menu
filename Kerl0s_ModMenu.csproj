@@ -50,17 +50,16 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Data\VehicleDatabase.cs" />
-    <Compile Include="Managers\FreecamManager.cs" />
-    <Compile Include="Managers\InputManager.cs" />
+    <Compile Include="Managers\CashManager.cs" />
+    <Compile Include="Managers\Menu.cs" />
     <Compile Include="Managers\MenuInitializer.cs" />
     <Compile Include="Managers\MenuManager.cs" />
     <Compile Include="Managers\TeleportManager.cs" />
     <Compile Include="Managers\VehicleManager.cs" />
-    <Compile Include="Managers\WorldManager.cs" />
     <Compile Include="Pagination.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="UI\UIDrawer.cs" />
+    <Compile Include="Utils\UI\UIDrawer.cs" />
     <Compile Include="Utils\Math.cs" />
   </ItemGroup>
   <ItemGroup />

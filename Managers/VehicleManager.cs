@@ -5,27 +5,37 @@ using System;
 
 namespace Kerl0s_ModMenu.Managers
 {
-    public static class VehicleManager
+    internal class VehicleManager
     {
-        public static void SpawnVehicle(string modelName)
+        public static void SpawnVehicle(string model)
         {
-            Model model = new Model(modelName);
-            if (!model.IsValid || !model.IsInCdImage) return;
+            if (string.IsNullOrWhiteSpace(model))
+                return;
 
-            model.Request(500);
-            if (!model.IsLoaded) return;
+            Model vehicleModel = new Model(model);
 
-            Ped player = Game.Player.Character;
-            Vector3 pos = player.Position + player.ForwardVector * 5;
-            Vehicle veh = World.CreateVehicle(model, pos);
-            player.SetIntoVehicle(veh, VehicleSeat.Driver);
-            EnableSeatbelt(true); // ceinture attachée
-        }
+            if (!vehicleModel.IsValid || !vehicleModel.IsVehicle)
+                return;
 
-        public static void EnableSeatbelt(bool state)
-        {
-            Ped player = Game.Player.Character;
-            Function.Call(Hash.SET_PED_CAN_BE_KNOCKED_OFF_VEHICLE, player, state ? 1 : 0); // 1 = never
+            vehicleModel.Request(1000); // attend max 1 sec que le modèle se charge
+
+            if (!vehicleModel.IsLoaded)
+                return;
+
+            // Position devant le joueur
+            Vector3 spawnPos = Game.Player.Character.Position + Game.Player.Character.ForwardVector * 5;
+
+            Vehicle veh = World.CreateVehicle(vehicleModel, spawnPos);
+            
+            if (veh != null)
+            {
+                veh.PlaceOnGround();
+                veh.Mods.PrimaryColor = VehicleColor.MatteBlack;
+                veh.Mods.SecondaryColor = VehicleColor.MatteBlack;
+                Game.Player.Character.SetIntoVehicle(veh, VehicleSeat.Driver);
+            }
+
+            vehicleModel.MarkAsNoLongerNeeded();
         }
 
         public static void MaxUpgradeVehicle(Vehicle veh)
@@ -33,6 +43,8 @@ namespace Kerl0s_ModMenu.Managers
             if (veh == null || !veh.Exists()) return;
 
             Function.Call(Hash.SET_VEHICLE_MOD_KIT, veh, 0);
+
+            // Upgrades classiques
             for (int i = 0; i < 50; i++)
             {
                 int modCount = Function.Call<int>(Hash.GET_NUM_VEHICLE_MODS, veh, i);
@@ -42,8 +54,16 @@ namespace Kerl0s_ModMenu.Managers
                 }
             }
 
+            // Turbo et xenon
             Function.Call(Hash.TOGGLE_VEHICLE_MOD, veh, 18, true); // Turbo
             Function.Call(Hash.TOGGLE_VEHICLE_MOD, veh, 22, true); // Xenon Lights
+
+            // Néons (lights sous la caisse)
+            Function.Call(Hash.SET_VEHICLE_NEON_COLOUR, veh, 255, 0, 255); // violet flashy (R,G,B)
+            for (int i = 0; i < 4; i++)
+            {
+                Function.Call(Hash.SET_VEHICLE_NEON_ENABLED, veh, i, true);
+            }
         }
 
         private static int rainbowTick = 0;
@@ -55,28 +75,11 @@ namespace Kerl0s_ModMenu.Managers
             int b = (int)(Math.Sin(rainbowTick * 0.1 + 4) * 127 + 128);
 
             vehicle.Mods.CustomPrimaryColor = System.Drawing.Color.FromArgb(r, g, b);
-            vehicle.Mods.CustomSecondaryColor = System.Drawing.Color.FromArgb(r, g, b);
+            vehicle.Mods.CustomSecondaryColor = System.Drawing.Color.FromArgb(b, g, r);
+
+            Function.Call(Hash.SET_VEHICLE_NEON_COLOUR, vehicle, g, b, r);
 
             rainbowTick++;
-        }
-
-        public static void DriveToWaypoint()
-        {
-            Ped player = Game.Player.Character;
-
-            if (!player.IsInVehicle()) return;
-            Vehicle veh = player.CurrentVehicle;
-
-            if (World.WaypointBlip == null)
-            {
-                GTA.UI.Screen.ShowSubtitle("~r~Aucun marqueur n'a été placé !");
-                return;
-            }
-
-            Vector3 dest = World.WaypointPosition;
-
-            Function.Call(Hash.TASK_VEHICLE_DRIVE_TO_COORD, player, veh, dest.X, dest.Y, dest.Z, 30f, 1f, veh.GetHashCode(), 786603, 1f, true);
-            GTA.UI.Screen.ShowSubtitle("~g~Direction le marqueur !");
         }
     }
 }

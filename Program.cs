@@ -1,75 +1,120 @@
 ﻿using GTA;
 using GTA.Native;
-using GTA.UI;
 using Kerl0s_ModMenu.Data;
 using Kerl0s_ModMenu.Managers;
-using Kerl0s_ModMenu.UI;
 using System;
-using System.Collections.Generic;
+using System.Windows.Forms;
 
 public class Program : Script
 {
-    public static Dictionary<string, List<string>> menus = new Dictionary<string, List<string>>();
-    public static Dictionary<string, List<Action>> menuActions = new Dictionary<string, List<Action>>();
+    public static Ped player;
+    public static Vehicle car;
 
     public Program()
     {
+        MenuInitializer.Initialize();
+        MenuManager.SetMenu("Menu Principal");
+
         Tick += OnTick;
-        KeyDown += InputManager.HandleInput;
+        KeyDown += OnKeyDown;
 
-        MenuManager manager = new MenuManager();
+        GTA.UI.Screen.ShowHelpText("Menu chargé, amuse-toi bien !");
 
-        Screen.ShowHelpText("Kerl0s Mod Menu chargé avec succès");
+        foreach (var veh in World.GetAllVehicles())
+        {
+            veh.Delete();
+        }
     }
-
-    bool wasDead = false;
 
     private void OnTick(object sender, EventArgs e)
     {
-        var player = Game.Player.Character;
-        var currentVehicle = player.CurrentVehicle;
+        player = Game.Player.Character;
+        car = Game.Player.Character.CurrentVehicle;
 
-        if (MenuManager.MenuOpen)
+        Function.Call(Hash.GIVE_WEAPON_TO_PED, player, WeaponHash.Parachute, 1, false, false);
+
+        CashManager.OnTick(54321);
+
+        Game.Player.WantedLevel = 0;
+
+        if (MenuManager.IsOpen)
         {
             MenuManager.Draw();
         }
 
-        FreecamManager.Update();
+        Function.Call(Hash.SET_PED_MOVE_RATE_OVERRIDE, player, MenuManager.isSuperSpeed ? 10.0f : 1.0f); // Modifie la vitesse de course du joueur
+        Function.Call(Hash.SET_PED_MOVE_RATE_IN_WATER_OVERRIDE, player, MenuManager.isSuperSwim ? 3.0f : 1.0f); // Modifie la vitesse de nage du joueur
 
-        player.IsInvincible = MenuManager.IsGodMod;
-        Function.Call(Hash.SET_PED_MOVE_RATE_OVERRIDE, player, (MenuManager.IsSuperSpeed ? 10.0f : 1.0f));
-        Function.Call(Hash.SET_PED_MOVE_RATE_IN_WATER_OVERRIDE, player, (MenuManager.IsSuperSwim ? 3.0f : 1.0f));
-        Function.Call(Hash.SET_SWIM_MULTIPLIER_FOR_PLAYER, player, (MenuManager.IsSuperSwim ? 10.0f : 1.0f));
+        player.IsInvincible = MenuManager.isGodMode;
 
-        Function.Call(Hash.SET_NIGHTVISION, MenuManager.IsNightVision);
-        Function.Call(Hash.SET_SEETHROUGH, MenuManager.IsHeatVision);
-
-        // Active/Désactive le HUD
-        Function.Call(Hash.DISPLAY_HUD, MenuManager.IsHudActive);
-        Function.Call(Hash.DISPLAY_RADAR, MenuManager.IsHudActive);
-
-        if (currentVehicle != null)
+        if (car != null)
         {
-            currentVehicle.EnginePowerMultiplier = (MenuManager.IsSpeedBoost ? 500 : 1);
-            currentVehicle.EngineTorqueMultiplier = (MenuManager.IsSpeedBoost ? 500 : 1);
-        }
+            car.EngineTorqueMultiplier = MenuManager.isSpeedBoost ? 1000000.0f : 1.0f;
+            car.EnginePowerMultiplier = MenuManager.isSpeedBoost ? 1000000.0f : 1.0f;
 
-        if (MenuManager.IsSpeedOMeter && Game.Player.Character.IsInVehicle())
-        {
-            var veh = Game.Player.Character.CurrentVehicle;
-            float speed = veh.Speed * 3.6f; // m/s → km/h
-            UIDrawer.DrawSpeedometer(speed);
+            if (MenuManager.isRainbowPaint) VehicleManager.ApplyRainbowPaint(car);
         }
-
-        // Rainbow paint
-        if (MenuManager.IsRainbowPaint)
-        {
-            var veh = Game.Player.Character.CurrentVehicle;
-            if (veh != null && veh.Exists())
-                VehicleManager.ApplyRainbowPaint(veh);
-        }
-
-        if (MenuManager.currentMenu == "Vehicle Spawner")
-            Screen.ShowSubtitle($"Page {Pagination.PageIndex + 1} / {Pagination.TotalPages(VehicleDatabase.vehicles.Count)}", 10);
     }
+
+    private void OnKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.F4) { MenuManager.ToggleMenu(); Audio.PlaySoundFrontendAndForget("NO", "HUD_FRONTEND_DEFAULT_SOUNDSET"); };
+
+        if (e.KeyCode == Keys.Add) Game.Player.Character.ApplyForce(GTA.Math.Vector3.WorldUp * 100000);
+        if (e.KeyCode == Keys.NumPad0) Game.Player.Character.ApplyForce(GTA.Math.Vector3.WorldUp * -100000);
+
+        if(e.KeyCode == Keys.O) {
+            foreach (var veh in World.GetNearbyVehicles(Game.Player.Character, 1000))
+            {
+                veh.Delete();
+            }
+        }
+
+        if (e.KeyCode == Keys.J)
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                World.CreateVehicle(VehicleHash.Panto, Game.Player.Character.Position + Game.Player.Character.ForwardVector * 5);
+                Wait(100);
+            }
+        }
+
+        if (e.KeyCode == Keys.K) GiveAllWeapons();
+
+        if (!MenuManager.IsOpen) return; // Ne fait rien si le menu n'ai pas ouvert
+
+        if (e.KeyCode == Keys.NumPad2) { MenuManager.CurrentMenu.SelectNext(); Audio.PlaySoundFrontendAndForget("NAV_UP_DOWN", "HUD_FRONTEND_DEFAULT_SOUNDSET"); }
+        else if (e.KeyCode == Keys.NumPad8) { MenuManager.CurrentMenu.SelectPrevious(); Audio.PlaySoundFrontendAndForget("NAV_UP_DOWN", "HUD_FRONTEND_DEFAULT_SOUNDSET"); }
+        else if (e.KeyCode == Keys.NumPad5) { MenuManager.CurrentMenu.ActivateSelected(); Audio.PlaySoundFrontendAndForget("OK", "HUD_FRONTEND_DEFAULT_SOUNDSET"); }
+
+        if (MenuManager.CurrentMenu == MenuManager.Menus["Créer Véhicule"])
+        {
+            if (e.KeyCode == Keys.NumPad6)
+            {
+                Pagination.NextPage(VehicleDatabase.vehicles.Count);
+                MenuManager.CurrentMenu.SelectedIndex = 0;
+                Audio.PlaySoundFrontendAndForget("NAV_UP_DOWN", "HUD_FRONTEND_DEFAULT_SOUNDSET");
+            }
+            else if (e.KeyCode == Keys.NumPad4)
+            {
+                Pagination.PrevPage();
+                MenuManager.CurrentMenu.SelectedIndex = 0;
+                Audio.PlaySoundFrontendAndForget("NAV_UP_DOWN", "HUD_FRONTEND_DEFAULT_SOUNDSET");
+            }
+
+            MenuInitializer.UpdateVehicleSpawnerMenu();
+        }
+    }
+
+    public static void GiveAllWeapons()
+    {
+        Ped player = Game.Player.Character;
+
+        // Donne toutes les armes disponibles
+        foreach (WeaponHash weapon in Enum.GetValues(typeof(WeaponHash)))
+        {
+            Function.Call(Hash.GIVE_WEAPON_TO_PED, player, (uint)weapon, 9999, false, true);
+        }
+    }
+
 }

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Kerl0s_ModMenu.Data
 {
-    public class VehicleDatabase
+    internal class VehicleDatabase
     {
         public static List<string> vehicles;
 

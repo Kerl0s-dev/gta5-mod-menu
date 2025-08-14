@@ -1,7 +1,7 @@
 ﻿using GTA.Native;
 using System.Drawing;
 
-namespace Kerl0s_ModMenu.UI
+namespace Kerl0s_ModMenu.Utils.UI
 {
     public static class UIDrawer
     {

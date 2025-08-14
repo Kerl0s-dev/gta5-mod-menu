@@ -1,4 +1,4 @@
-﻿namespace Kerl0s_ModMenu.Utils
+﻿namespace Kerl0s_ModMenu.Utils.UI
 {
     internal class Math
     {

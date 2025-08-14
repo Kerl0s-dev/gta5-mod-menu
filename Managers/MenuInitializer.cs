@@ -1,166 +1,186 @@
 ﻿using GTA;
-using GTA.UI;
+using GTA.Math;
+using GTA.Native;
 using Kerl0s_ModMenu.Data;
 using System;
-using System.Collections.Generic;
+using System.Drawing;
 
 namespace Kerl0s_ModMenu.Managers
 {
     public static class MenuInitializer
     {
-        private static bool initialized = false;
-
         public static void Initialize()
         {
-            if (initialized) return;
-            initialized = true;
-
             VehicleDatabase.LoadVehicles();
 
-            InitializeMain();
-            InitializePlayer();
-            InitializeVehicle();
-            InitializeWorld();
-            InitializeMiscellaneous();
-        }
-
-        private static void InitializeMain()
-        {
-            MenuManager.menus["Main"] = new List<string> { "Player", "Vehicle", "Teleport To Marker", "World", "Miscellaneous" };
-            MenuManager.menuActions["Main"] = new List<Action>
-            {
-                () => MenuManager.SetMenu("Player"),
-                () => MenuManager.SetMenu("Vehicle"),
-                () => TeleportManager.TeleportToMarker(),
-                () => MenuManager.SetMenu("World"),
-                () => MenuManager.SetMenu("Miscellaneous")
-            };
-        }
-
-        private static void InitializePlayer()
-        {
-            MenuManager.menus["Player"] = AddReturn("God Mod ~r~OFF", "Super Speed ~r~OFF", "Super Swim ~r~OFF");
-            MenuManager.menuActions["Player"] = AddReturnAction("Main",
-                () => ToggleOption(ref MenuManager.IsGodMod, "Player", 0, "God Mod"),
-                () => ToggleOption(ref MenuManager.IsSuperSpeed, "Player", 1, "Super Speed"),
-                () => ToggleOption(ref MenuManager.IsSuperSwim, "Player", 2, "Super Swim")
-            );
-        }
-
-        private static void InitializeVehicle()
-        {
-            MenuManager.menus["Vehicle"] = AddReturn(
-                "Vehicle Spawner",
-                "Fix Vehicle",
-                "Delete All Vehicles",
-                "Speed Boost ~r~OFF",
-                "Speed O Meter ~r~OFF",
-                "Seatbelt ~r~OFF",
-                "Invincible ~r~OFF",
-                "Max Upgrade",
-                "Rainbow Paint ~r~OFF",
-                "Autodrive to Waypoint"
+            var mainMenu = new Menu("Menu Principal", Color.FromArgb(10, 0, 50),
+                new[] { "Joueur", "Véhicule", "Monde", "HUD", "Téléporter Au Marqueur", "Thune", "Pew Pew" },
+                new Action[] {
+                    () => MenuManager.SetMenu("Joueur"),
+                    () => MenuManager.SetMenu("Véhicule"),
+                    () => MenuManager.SetMenu("Monde"),
+                    () => MenuManager.SetMenu("HUD"),
+                    () => TeleportManager.TeleportToMarker(),
+                    () => CashManager.ToggleCashRain(2500)
+                }
             );
 
-            MenuManager.menuActions["Vehicle"] = AddReturnAction("Main",
-                () => MenuManager.SetMenu("Vehicle Spawner"),
-                () => { if (Game.Player.Character.CurrentVehicle != null) Game.Player.Character.CurrentVehicle.Repair(); else Notification.PostTicker("~r~You aren't in a vehicle", true); },
-                () => { Vehicle[] vehicles = World.GetAllVehicles(); foreach (var vehicle in vehicles) { if (vehicle != Game.Player.Character.CurrentVehicle) vehicle.Delete(); } },
-                () => ToggleOption(ref MenuManager.IsSpeedBoost, "Vehicle", 3, "Speed Boost"),
-                () => ToggleOption(ref MenuManager.IsSpeedOMeter, "Vehicle", 4, "Speed O Meter"),
-                () => { MenuManager.IsSeatbeltOn = !MenuManager.IsSeatbeltOn; VehicleManager.EnableSeatbelt(MenuManager.IsSeatbeltOn); MenuManager.menus["Vehicle"][5] = $"Seatbelt {(MenuManager.IsSeatbeltOn ? "~g~ON" : "~r~OFF")}"; },
-                () => { ToggleOption(ref MenuManager.IsInvincible, "Vehicle", 6, "Invincible"); Game.Player.Character.CurrentVehicle.IsInvincible = MenuManager.IsInvincible; },
-                () => { if (Game.Player.Character.CurrentVehicle != null) VehicleManager.MaxUpgradeVehicle(Game.Player.Character.CurrentVehicle); else Notification.PostTicker("~r~You aren't in a vehicle", true); },
-                () => { ToggleOption(ref MenuManager.IsRainbowPaint, "Vehicle", 8, "Rainbow Paint"); },
-                () => VehicleManager.DriveToWaypoint()
+            var playerMenu = new Menu("Joueur", Color.FromArgb(255, 100, 0),
+                new[] { "Mode Divin ~r~OFF", "Super Vitesse ~r~OFF", "Super Nage ~r~OFF", "Changer de Personnage", "~y~Retour" },
+                new Action[] {
+                    () => { MenuManager.ToggleOption(ref MenuManager.isGodMode, "Joueur", 0, "Mode Divin"); },
+                    () => { MenuManager.ToggleOption(ref MenuManager.isSuperSpeed, "Joueur", 1, "Super Vitesse"); },
+                    () => { MenuManager.ToggleOption(ref MenuManager.isSuperSwim, "Joueur", 2, "Super Nage"); },
+                    () => MenuManager.SetMenu("Personnage"),
+                    () => MenuManager.SetMenu("Menu Principal")
+                }
             );
 
-            MenuManager.menus["Vehicle Spawner"] = new List<string>();
-            MenuManager.menuActions["Vehicle Spawner"] = new List<Action>();
+            var characterMenu = new Menu("Personnage", Color.Gold,
+                new[] {"Franklin", "Michael", "Trevor", "Singe", "Cochon", "~y~Retour" },
+                new Action[] {
+                    () => Game.Player.ChangeModel(PedHash.Franklin),
+                    () => Game.Player.ChangeModel(PedHash.Michael),
+                    () => Game.Player.ChangeModel(PedHash.Trevor),
+                    () => Game.Player.ChangeModel(PedHash.Chimp),
+                    () => Game.Player.ChangeModel(PedHash.Pig),
+                    () => MenuManager.SetMenu("Joueur"),
+                }
+            );
+
+            var vehicleMenu = new Menu("Véhicule", Color.FromArgb(0, 100, 255),
+                new[] { "Boost de Vitesse ~r~OFF", "Créer Véhicule", "Réparer le véhicule", "Améliorer au Maximum", "Mode Arc en ciel ~r~OFF", "~y~Retour" },
+                new Action[]
+                {
+                    () => { MenuManager.ToggleOption(ref MenuManager.isSpeedBoost, "Véhicule", 0, "Boost de Vitesse"); },
+                    () => MenuManager.SetMenu("Créer Véhicule"),
+                    () => { if (Game.Player.Character.CurrentVehicle != null) Game.Player.Character.CurrentVehicle.Repair(); },
+                    () => VehicleManager.MaxUpgradeVehicle(Game.Player.Character.CurrentVehicle),
+                    () => MenuManager.ToggleOption(ref MenuManager.isRainbowPaint, "Véhicule", 4, "Mode Arc en ciel"),
+                    () => MenuManager.SetMenu("Menu Principal")
+                }
+            );
+
+            var spawnerMenu = new Menu("Créer Véhicule", Color.FromArgb(0, 150, 255),
+                new[] { "" },
+                new Action[] { () => { } }
+            );
+
+            var worldMenu = new Menu("Monde", Color.FromArgb(0, 50, 50),
+                new[] { "Changer l'heure", "Changer la météo", "~y~Retour" },
+                new Action[] { 
+                    () => MenuManager.SetMenu("Heure"),
+                    () => MenuManager.SetMenu("Météo"),
+                    () => MenuManager.SetMenu("Menu Principal")
+                }
+            );
+
+            var timeMenu = new Menu("Heure", Color.DarkBlue,
+                new[] { "" },
+                new Action[] { () => { } }
+            );
+
+            var weatherMenu = new Menu("Météo", Color.DeepSkyBlue,
+                new[] { "" },
+                new Action[] { () => { } }
+            );
+
+            var hudMenu = new Menu("HUD", Color.FromArgb(100, 255, 0),
+                new[] { "Afficher HUD ~g~ON", "~y~Retour" },
+                new Action[] {
+                    () => { MenuManager.ToggleOption(ref MenuManager.hudActive, "HUD", 0, "Afficher HUD"); Function.Call(Hash.DISPLAY_HUD, MenuManager.hudActive); Function.Call(Hash.DISPLAY_RADAR, MenuManager.hudActive); },
+                    () => MenuManager.SetMenu("Menu Principal")
+                }
+            );
+
+            MenuManager.Menus.Add("Menu Principal", mainMenu);
+            MenuManager.Menus.Add("Joueur", playerMenu);
+            MenuManager.Menus.Add("Personnage", characterMenu);
+            MenuManager.Menus.Add("Véhicule", vehicleMenu);
+            MenuManager.Menus.Add("Créer Véhicule", spawnerMenu);
+            MenuManager.Menus.Add("Monde", worldMenu);
+            MenuManager.Menus.Add("Heure", timeMenu);
+            MenuManager.Menus.Add("Météo", weatherMenu);
+            MenuManager.Menus.Add("HUD", hudMenu);
 
             UpdateVehicleSpawnerMenu();
+            UpdateTimeMenu();
+            UpdateWeatherMenu();
         }
 
         public static void UpdateVehicleSpawnerMenu()
         {
             var pageItems = Pagination.GetPage(VehicleDatabase.vehicles);
-            MenuManager.menus["Vehicle Spawner"].Clear();
-            MenuManager.menuActions["Vehicle Spawner"].Clear();
+            var menu = MenuManager.Menus["Créer Véhicule"];
 
+            menu.Items.Clear();
+            menu.Actions.Clear();
+
+            menu.Items.Add("Veto");
+            menu.Actions.Add(() => VehicleManager.SpawnVehicle(VehicleHash.Veto.ToString()));
+
+            // Ajout des véhicules
             foreach (var model in pageItems)
             {
-                MenuManager.menus["Vehicle Spawner"].Add(model);
-                MenuManager.menuActions["Vehicle Spawner"].Add(() => VehicleManager.SpawnVehicle(model));
+                string vehicleName = model; // copie locale pour éviter la capture du foreach
+                menu.Items.Add(vehicleName);
+                menu.Actions.Add(() => VehicleManager.SpawnVehicle(vehicleName));
             }
 
-            MenuManager.menus["Vehicle Spawner"].Add("Back");
-            MenuManager.menuActions["Vehicle Spawner"].Add(() => MenuManager.SetMenu("Main"));
+            // Retour
+            menu.Items.Add("~y~Retour");
+            menu.Actions.Add(() => MenuManager.SetMenu("Véhicule"));
         }
 
-        private static void InitializeWorld()
+        public static void UpdateTimeMenu()
         {
-            
-            MenuManager.menus["World"] =AddReturn("Change Time", "Change Weather");
-            MenuManager.menuActions["World"] = AddReturnAction("Main",
-                () => MenuManager.SetMenu("Time Menu"),
-                () => MenuManager.SetMenu("Weather Menu")
-            );
+            var menu = MenuManager.Menus["Heure"];
 
-            MenuManager.menus["Time Menu"] = AddReturn("Morning", "Noon", "Afternoon", "Night", "Midnight");
-            MenuManager.menuActions["Time Menu"] = AddReturnAction("World",
-                () => WorldManager.SetTime(8, 0),
-                () => WorldManager.SetTime(12, 0),
-                () => WorldManager.SetTime(14, 0),
-                () => WorldManager.SetTime(20, 0),
-                () => WorldManager.SetTime(0, 0)
-            );
+            menu.Items.Clear();
+            menu.Actions.Clear();
 
-            MenuManager.menus["Weather Menu"] = AddReturn("Extra Sunny", "Clear", "Clouds", "Smog", "Foggy", "Overcast", "Rain", "Thunder", "Clearing", "Neutral", "Snowing", "Blizzard", "Snowlight", "Xmas", "Halloween");
-            MenuManager.menuActions["Weather Menu"] = AddReturnAction("World",
-                () => WorldManager.SetWeather(Weather.ExtraSunny),
-                () => WorldManager.SetWeather(Weather.Clear),
-                () => WorldManager.SetWeather(Weather.Clouds),
-                () => WorldManager.SetWeather(Weather.Smog),
-                () => WorldManager.SetWeather(Weather.Foggy),
-                () => WorldManager.SetWeather(Weather.Overcast),
-                () => WorldManager.SetWeather(Weather.Raining),
-                () => WorldManager.SetWeather(Weather.ThunderStorm),
-                () => WorldManager.SetWeather(Weather.Clearing),
-                () => WorldManager.SetWeather(Weather.Neutral),
-                () => WorldManager.SetWeather(Weather.Snowing),
-                () => WorldManager.SetWeather(Weather.Blizzard),
-                () => WorldManager.SetWeather(Weather.Snowlight),
-                () => WorldManager.SetWeather(Weather.Christmas),
-                () => WorldManager.SetWeather(Weather.Halloween)
-            );
+            // Heures prédéfinies
+            int[] hours = { 0, 6, 12, 18, 21 }; // tu peux mettre de 0 à 23 si tu veux tout
+
+            foreach (var hour in hours)
+            {
+                var localHour = hour; // capture locale
+                menu.Items.Add(localHour.ToString("00") + ":00");
+                menu.Actions.Add(() =>
+                {
+                    Function.Call(Hash.SET_CLOCK_TIME, localHour, 0, 0);
+                });
+            }
+
+            // Retour
+            menu.Items.Add("~y~Retour");
+            menu.Actions.Add(() => MenuManager.SetMenu("Monde"));
         }
 
-        private static void InitializeMiscellaneous()
+        public static void UpdateWeatherMenu()
         {
-            MenuManager.menus["Miscellaneous"] = AddReturn(
-                "Night Vision ~r~OFF",
-                "Heat Vision ~r~OFF",
-                "HUD ~g~ON"
-            );
+            var menu = MenuManager.Menus["Météo"];
 
-            MenuManager.menuActions["Miscellaneous"] = AddReturnAction("Main",
-                () => { ToggleOption(ref MenuManager.IsNightVision, "Miscellaneous", 0, "Night Vision"); },
-                () => { ToggleOption(ref MenuManager.IsHeatVision, "Miscellaneous", 1, "Heat Vision"); },
-                () => { ToggleOption(ref MenuManager.IsHudActive, "Miscellaneous", 2, "HUD"); }
-            );
+            menu.Items.Clear();
+            menu.Actions.Clear();
+
+            // Ajout des météos
+            foreach (Weather weather in Enum.GetValues(typeof(Weather)))
+            {
+                var localWeather = weather; // capture correcte dans le lambda
+                menu.Items.Add(localWeather.ToString());
+                menu.Actions.Add(() =>
+                {
+                    string weatherName = localWeather.ToString();
+                    Function.Call(Hash.SET_WEATHER_TYPE_PERSIST, weatherName);
+                    Function.Call(Hash.SET_WEATHER_TYPE_OVERTIME_PERSIST, weatherName);
+                    Function.Call(Hash.SET_WEATHER_TYPE_NOW_PERSIST, weatherName);
+                });
+            }
+
+            // Retour
+            menu.Items.Add("~y~Retour");
+            menu.Actions.Add(() => MenuManager.SetMenu("Monde"));
         }
-
-        public static void ToggleOption(ref bool flag, string menuKey, int optionIndex, string baseLabel)
-        {
-            flag = !flag;
-            string state = flag ? "~g~ON" : "~r~OFF";
-            MenuManager.menus[menuKey][optionIndex] = $"{baseLabel} {state}";
-        }
-
-        private static List<string> AddReturn(params string[] options)
-            => new List<string>(options) { "Back" };
-
-        private static List<Action> AddReturnAction(string BackMenu, params Action[] actions)
-            => new List<Action>(actions) { () => MenuManager.SetMenu(BackMenu) };
     }
 }
