@@ -14,14 +14,15 @@ namespace Kerl0s_ModMenu.Managers
             VehicleDatabase.LoadVehicles();
 
             var mainMenu = new Menu("Menu Principal", Color.FromArgb(10, 0, 50),
-                new[] { "Joueur", "Véhicule", "Monde", "HUD", "Téléporter Au Marqueur", "Thune", "Pew Pew" },
+                new[] { "Joueur", "Véhicule", "Monde", "HUD", "Téléporter Au Marqueur", "Donner de l'argent", "Enlever la police" },
                 new Action[] {
                     () => MenuManager.SetMenu("Joueur"),
                     () => MenuManager.SetMenu("Véhicule"),
                     () => MenuManager.SetMenu("Monde"),
                     () => MenuManager.SetMenu("HUD"),
                     () => TeleportManager.TeleportToMarker(),
-                    () => CashManager.ToggleCashRain(2500)
+                    () => CashManager.ToggleCashRain(2500),
+                    () => Game.Player.WantedLevel = 0
                 }
             );
 
