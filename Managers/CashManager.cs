@@ -5,37 +5,53 @@ namespace Kerl0s_ModMenu.Managers
 {
     public static class CashManager
     {
-        private static bool rainingCash = false;
-        private static DateTime lastDropTime;
+        private static bool _isRaining = false;
+        private static DateTime _lastDropTime = DateTime.MinValue;
+
+        // Tunable values
+        private static readonly TimeSpan DropInterval = TimeSpan.FromMilliseconds(500); // every 500ms
+        private const int MaxStoredMoney = 2_000_000_000;
 
         public static void ToggleCashRain(int amountPerDrop = 2500)
         {
-            rainingCash = !rainingCash;
-            GTA.UI.Notification.PostTicker(rainingCash ? "~g~Pluie de cash activée" : "~r~Pluie de cash désactivée", true);
+            _isRaining = !_isRaining;
+            GTA.UI.Notification.PostTicker(_isRaining ? "~g~Pluie de cash activée" : "~r~Pluie de cash désactivée", true);
 
-            if (rainingCash)
-                lastDropTime = DateTime.Now;
+            if (_isRaining)
+            {
+                _lastDropTime = DateTime.UtcNow;
+            }
         }
 
         public static void OnTick(int amountPerDrop = 1)
         {
-            if (!rainingCash) return;
+            if (!_isRaining) return;
 
-            if ((DateTime.Now - lastDropTime).TotalMilliseconds > .01) // toutes les 0.5 secondes
+            if ((DateTime.UtcNow - _lastDropTime) >= DropInterval)
             {
                 GiveCashToPlayer(amountPerDrop);
-                lastDropTime = DateTime.Now;
+                _lastDropTime = DateTime.UtcNow;
             }
         }
 
         private static void GiveCashToPlayer(int amount)
         {
-            Ped player = Game.Player.Character;
-
-            // Ajoute l'argent
-            if (Game.Player.Money < 2000000000)
-                Game.Player.Money += amount;
-            else GTA.UI.Notification.PostTicker("Plus d'argent en stock", true);
+            try
+            {
+                if (Game.Player.Money < MaxStoredMoney)
+                {
+                    Game.Player.Money += amount;
+                }
+                else
+                {
+                    GTA.UI.Notification.PostTicker("Plus d'argent en stock", true);
+                }
+            }
+            catch
+            {
+                // Best-effort; ignore unexpected failures at runtime
+                GTA.UI.Notification.PostTicker("Erreur lors de l'ajout d'argent", true);
+            }
         }
     }
 }

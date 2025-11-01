@@ -1,5 +1,4 @@
 ﻿using GTA;
-using GTA.Math;
 using GTA.Native;
 using Kerl0s_ModMenu.Data;
 using System;
@@ -13,6 +12,14 @@ namespace Kerl0s_ModMenu.Managers
         {
             VehicleDatabase.LoadVehicles();
 
+            CreateMenus();
+            UpdateVehicleSpawnerMenu();
+            UpdateTimeMenu();
+            UpdateWeatherMenu();
+        }
+
+        private static void CreateMenus()
+        {
             var mainMenu = new Menu("Menu Principal", Color.FromArgb(10, 0, 50),
                 new[] { "Joueur", "Véhicule", "Monde", "HUD", "Téléporter Au Marqueur", "Donner de l'argent", "Enlever la police" },
                 new Action[] {
@@ -69,7 +76,7 @@ namespace Kerl0s_ModMenu.Managers
 
             var worldMenu = new Menu("Monde", Color.FromArgb(0, 50, 50),
                 new[] { "Changer l'heure", "Changer la météo", "~y~Retour" },
-                new Action[] { 
+                new Action[] {
                     () => MenuManager.SetMenu("Heure"),
                     () => MenuManager.SetMenu("Météo"),
                     () => MenuManager.SetMenu("Menu Principal")
@@ -89,11 +96,16 @@ namespace Kerl0s_ModMenu.Managers
             var hudMenu = new Menu("HUD", Color.FromArgb(100, 255, 0),
                 new[] { "Afficher HUD ~g~ON", "~y~Retour" },
                 new Action[] {
-                    () => { MenuManager.ToggleOption(ref MenuManager.hudActive, "HUD", 0, "Afficher HUD"); Function.Call(Hash.DISPLAY_HUD, MenuManager.hudActive); Function.Call(Hash.DISPLAY_RADAR, MenuManager.hudActive); },
+                    () => {
+                        MenuManager.ToggleOption(ref MenuManager.hudActive, "HUD", 0, "Afficher HUD");
+                        Function.Call(Hash.DISPLAY_HUD, MenuManager.hudActive);
+                        Function.Call(Hash.DISPLAY_RADAR, MenuManager.hudActive);
+                    },
                     () => MenuManager.SetMenu("Menu Principal")
                 }
             );
 
+            // Register menus
             MenuManager.Menus.Add("Menu Principal", mainMenu);
             MenuManager.Menus.Add("Joueur", playerMenu);
             MenuManager.Menus.Add("Personnage", characterMenu);
@@ -103,49 +115,43 @@ namespace Kerl0s_ModMenu.Managers
             MenuManager.Menus.Add("Heure", timeMenu);
             MenuManager.Menus.Add("Météo", weatherMenu);
             MenuManager.Menus.Add("HUD", hudMenu);
-
-            UpdateVehicleSpawnerMenu();
-            UpdateTimeMenu();
-            UpdateWeatherMenu();
         }
 
         public static void UpdateVehicleSpawnerMenu()
         {
             var pageItems = Pagination.GetPage(VehicleDatabase.vehicles);
+            if (!MenuManager.Menus.ContainsKey("Créer Véhicule")) return;
+
             var menu = MenuManager.Menus["Créer Véhicule"];
 
             menu.Items.Clear();
             menu.Actions.Clear();
 
-            menu.Items.Add("Veto");
-            menu.Actions.Add(() => VehicleManager.SpawnVehicle(VehicleHash.Veto.ToString()));
-
-            // Ajout des véhicules
             foreach (var model in pageItems)
             {
-                string vehicleName = model; // copie locale pour éviter la capture du foreach
+                string vehicleName = model;
                 menu.Items.Add(vehicleName);
                 menu.Actions.Add(() => VehicleManager.SpawnVehicle(vehicleName));
             }
 
-            // Retour
             menu.Items.Add("~y~Retour");
             menu.Actions.Add(() => MenuManager.SetMenu("Véhicule"));
         }
 
         public static void UpdateTimeMenu()
         {
+            if (!MenuManager.Menus.ContainsKey("Heure")) return;
+
             var menu = MenuManager.Menus["Heure"];
 
             menu.Items.Clear();
             menu.Actions.Clear();
 
-            // Heures prédéfinies
-            int[] hours = { 0, 6, 12, 18, 21 }; // tu peux mettre de 0 à 23 si tu veux tout
+            int[] hours = { 0, 6, 12, 18, 21 };
 
             foreach (var hour in hours)
             {
-                var localHour = hour; // capture locale
+                int localHour = hour;
                 menu.Items.Add(localHour.ToString("00") + ":00");
                 menu.Actions.Add(() =>
                 {
@@ -153,22 +159,22 @@ namespace Kerl0s_ModMenu.Managers
                 });
             }
 
-            // Retour
             menu.Items.Add("~y~Retour");
             menu.Actions.Add(() => MenuManager.SetMenu("Monde"));
         }
 
         public static void UpdateWeatherMenu()
         {
+            if (!MenuManager.Menus.ContainsKey("Météo")) return;
+
             var menu = MenuManager.Menus["Météo"];
 
             menu.Items.Clear();
             menu.Actions.Clear();
 
-            // Ajout des météos
             foreach (Weather weather in Enum.GetValues(typeof(Weather)))
             {
-                var localWeather = weather; // capture correcte dans le lambda
+                var localWeather = weather;
                 menu.Items.Add(localWeather.ToString());
                 menu.Actions.Add(() =>
                 {
@@ -179,7 +185,6 @@ namespace Kerl0s_ModMenu.Managers
                 });
             }
 
-            // Retour
             menu.Items.Add("~y~Retour");
             menu.Actions.Add(() => MenuManager.SetMenu("Monde"));
         }

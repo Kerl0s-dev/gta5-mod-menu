@@ -4,17 +4,22 @@ using System.Collections.Generic;
 
 namespace Kerl0s_ModMenu.Data
 {
-    internal class VehicleDatabase
+    internal static class VehicleDatabase
     {
-        public static List<string> vehicles;
+        // Keep existing field for compatibility with callers in the codebase
+        public static List<string> vehicles = new List<string>();
+
+        // Expose read-only view for new code
+        public static IReadOnlyList<string> Vehicles => vehicles;
 
         public static void LoadVehicles()
         {
-            vehicles = new List<string>();
-            foreach (VehicleHash vehicle in Enum.GetValues(typeof(VehicleHash)))
+            var list = new List<string>();
+            foreach (VehicleHash vh in Enum.GetValues(typeof(VehicleHash)))
             {
-                vehicles.Add(vehicle.ToString());
+                list.Add(vh.ToString());
             }
+            vehicles = list;
         }
     }
 }

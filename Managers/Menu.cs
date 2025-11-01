@@ -8,13 +8,13 @@ namespace Kerl0s_ModMenu.Managers
     // Classe basique pour un Menu
     public class Menu
     {
-        public string Name;
-        public Color HeaderColor;
-        public List<string> Items;
-        public List<Action> Actions;
-        public List<bool> Toggles = new List<bool>();  // Pour stocker les états ON/OFF
+        public string Name { get; set; }
+        public Color HeaderColor { get; set; }
+        public List<string> Items { get; set; }
+        public List<Action> Actions { get; set; }
+        public List<bool> Toggles { get; set; } = new List<bool>();
 
-        public int SelectedIndex = 0;
+        public int SelectedIndex { get; set; } = 0;
 
         public Menu(string name, Color headerColor, IEnumerable<string> items, IEnumerable<Action> actions = null)
         {
@@ -24,32 +24,34 @@ namespace Kerl0s_ModMenu.Managers
 
             if (actions == null)
             {
-                // Pas d'actions, on crée une liste vide d’actions
                 Actions = new List<Action>(new Action[Items.Count]);
                 for (int i = 0; i < Actions.Count; i++)
-                    Actions[i] = () => { }; // actions vides par défaut
+                    Actions[i] = () => { };
             }
             else
             {
                 Actions = new List<Action>(actions);
 
-                // Si moins d'actions que d'items, on complète avec des actions vides
                 while (Actions.Count < Items.Count)
                     Actions.Add(() => { });
 
-                // Si plus d'actions que d'items, on coupe la liste d’actions
                 if (Actions.Count > Items.Count)
                     Actions.RemoveRange(Items.Count, Actions.Count - Items.Count);
             }
+
+            // Ensure Toggles list size aligns with items (defaults to false)
+            while (Toggles.Count < Items.Count) Toggles.Add(false);
+            if (Toggles.Count > Items.Count) Toggles.RemoveRange(Items.Count, Toggles.Count - Items.Count);
         }
 
         public void Draw()
         {
             if (!MenuManager.IsOpen || MenuManager.CurrentMenu != this) return;
+            if (Items == null || Items.Count == 0) return;
 
-            float startX = 0.11f;
-            float startY = 0.09f;
-            float spacing = 0.05f;
+            const float startX = 0.11f;
+            const float startY = 0.09f;
+            const float spacing = 0.05f;
 
             UIDrawer.DrawHeader($"KMM V2 - {Name}", 1, .6f, HeaderColor, 255, startX, startY - 0.05f);
 
@@ -62,26 +64,28 @@ namespace Kerl0s_ModMenu.Managers
 
         public void SelectNext()
         {
+            if (Items == null || Items.Count == 0) return;
             SelectedIndex = (SelectedIndex + 1) % Items.Count;
         }
 
         public void SelectPrevious()
         {
+            if (Items == null || Items.Count == 0) return;
             SelectedIndex = (SelectedIndex - 1 + Items.Count) % Items.Count;
         }
 
         public void ActivateSelected()
         {
+            if (Items == null || Items.Count == 0) return;
+            if (SelectedIndex < 0 || SelectedIndex >= Items.Count) return;
+
+            // Toggle if there's a corresponding toggle state
             if (SelectedIndex < Toggles.Count)
             {
-                // Inverse toggle si possible
                 Toggles[SelectedIndex] = !Toggles[SelectedIndex];
-                Actions[SelectedIndex]?.Invoke();
             }
-            else
-            {
-                Actions[SelectedIndex]?.Invoke();
-            }
+
+            Actions?[SelectedIndex]?.Invoke();
         }
     }
 }

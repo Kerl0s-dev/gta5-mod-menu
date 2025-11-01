@@ -7,8 +7,16 @@ using System.Windows.Forms;
 
 public class Program : Script
 {
-    public static Ped player;
-    public static Vehicle car;
+    // Exposed as properties for clearer intent
+    public static Ped Player { get; private set; }
+    public static Vehicle Car { get; private set; }
+
+    // Tunable constants
+    private const float DefaultMoveRate = 1.0f;
+    private const float SuperRunMultiplier = 10.0f;
+    private const float SuperSwimMultiplier = 3.0f;
+    private const float SpeedBoostMultiplier = 250.0f;
+    private const int CashTickIntervalMs = 10000;
 
     public Program()
     {
@@ -20,49 +28,57 @@ public class Program : Script
 
         GTA.UI.Screen.ShowHelpText("Menu chargé, amuse-toi bien !");
 
-        foreach (var veh in World.GetAllVehicles())
-        {
-            veh.Delete();
-        }
+        ClearWorldVehicles();
     }
 
     private void OnTick(object sender, EventArgs e)
     {
-        player = Game.Player.Character;
-        car = Game.Player.Character.CurrentVehicle;
+        UpdatePlayerAndVehicleReferences();
 
-        CashManager.OnTick(10000);
+        CashManager.OnTick(CashTickIntervalMs);
 
         if (MenuManager.IsOpen)
         {
             MenuManager.Draw();
         }
 
-        Function.Call(Hash.SET_PED_MOVE_RATE_OVERRIDE, player, MenuManager.isSuperSpeed ? 10.0f : 1.0f); // Modifie la vitesse de course du joueur
-        Function.Call(Hash.SET_PED_MOVE_RATE_IN_WATER_OVERRIDE, player, MenuManager.isSuperSwim ? 3.0f : 1.0f); // Modifie la vitesse de nage du joueur
-
-        player.IsInvincible = MenuManager.isGodMode;
-
-        if (car != null)
-        {
-            car.EngineTorqueMultiplier = MenuManager.isSpeedBoost ? 1000000.0f : 1.0f;
-            car.EnginePowerMultiplier = MenuManager.isSpeedBoost ? 1000000.0f : 1.0f;
-
-            if (MenuManager.isRainbowPaint) VehicleManager.ApplyRainbowPaint(car);
-        }
+        ApplyMovementOverrides();
+        ApplyPlayerInvincibility();
+        ApplyVehicleModifiers();
     }
 
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.KeyCode == Keys.F4) { MenuManager.ToggleMenu(); Audio.PlaySoundFrontendAndForget("NO", "HUD_FRONTEND_DEFAULT_SOUNDSET"); };
+        if (e.KeyCode == Keys.F4)
+        {
+            MenuManager.ToggleMenu();
+            PlayUiSound("NO");
+            return;
+        }
 
-        if (e.KeyCode == Keys.K) GiveAllWeapons();
+        if (e.KeyCode == Keys.K)
+        {
+            GiveAllWeapons();
+            return;
+        }
 
-        if (!MenuManager.IsOpen) return; // Ne fait rien si le menu n'ai pas ouvert
+        if (!MenuManager.IsOpen) return; // ignore navigation when menu closed
 
-        if (e.KeyCode == Keys.NumPad2) { MenuManager.CurrentMenu.SelectNext(); Audio.PlaySoundFrontendAndForget("NAV_UP_DOWN", "HUD_FRONTEND_DEFAULT_SOUNDSET"); }
-        else if (e.KeyCode == Keys.NumPad8) { MenuManager.CurrentMenu.SelectPrevious(); Audio.PlaySoundFrontendAndForget("NAV_UP_DOWN", "HUD_FRONTEND_DEFAULT_SOUNDSET"); }
-        else if (e.KeyCode == Keys.NumPad5) { MenuManager.CurrentMenu.ActivateSelected(); Audio.PlaySoundFrontendAndForget("OK", "HUD_FRONTEND_DEFAULT_SOUNDSET"); }
+        if (e.KeyCode == Keys.NumPad2)
+        {
+            MenuManager.CurrentMenu?.SelectNext();
+            PlayUiSound("NAV_UP_DOWN");
+        }
+        else if (e.KeyCode == Keys.NumPad8)
+        {
+            MenuManager.CurrentMenu?.SelectPrevious();
+            PlayUiSound("NAV_UP_DOWN");
+        }
+        else if (e.KeyCode == Keys.NumPad5)
+        {
+            MenuManager.CurrentMenu?.ActivateSelected();
+            PlayUiSound("OK");
+        }
 
         if (MenuManager.CurrentMenu == MenuManager.Menus["Créer Véhicule"])
         {
@@ -70,28 +86,92 @@ public class Program : Script
             {
                 Pagination.NextPage(VehicleDatabase.vehicles.Count);
                 MenuManager.CurrentMenu.SelectedIndex = 0;
-                Audio.PlaySoundFrontendAndForget("NAV_UP_DOWN", "HUD_FRONTEND_DEFAULT_SOUNDSET");
+                PlayUiSound("NAV_UP_DOWN");
             }
             else if (e.KeyCode == Keys.NumPad4)
             {
                 Pagination.PrevPage();
                 MenuManager.CurrentMenu.SelectedIndex = 0;
-                Audio.PlaySoundFrontendAndForget("NAV_UP_DOWN", "HUD_FRONTEND_DEFAULT_SOUNDSET");
+                PlayUiSound("NAV_UP_DOWN");
             }
 
             MenuInitializer.UpdateVehicleSpawnerMenu();
         }
     }
 
+    /// <summary>
+    /// Gives every weapon enum value to the player. Exceptions are ignored to avoid crashes from invalid enum values.
+    /// </summary>
     public static void GiveAllWeapons()
     {
-        Ped player = Game.Player.Character;
+        var playerPed = Game.Player.Character;
 
-        // Donne toutes les armes disponibles
         foreach (WeaponHash weapon in Enum.GetValues(typeof(WeaponHash)))
         {
-            Function.Call(Hash.GIVE_WEAPON_TO_PED, player, (uint)weapon, 9999, false, true);
+            try
+            {
+                Function.Call(Hash.GIVE_WEAPON_TO_PED, playerPed, (uint)weapon, 9999, false, true);
+            }
+            catch
+            {
+                // ignore invalid/unsupported enum values
+            }
         }
     }
 
+    #region Helpers
+
+    private void UpdatePlayerAndVehicleReferences()
+    {
+        Player = Game.Player?.Character;
+        Car = Player?.CurrentVehicle;
+    }
+
+    private void ApplyMovementOverrides()
+    {
+        if (Player == null) return;
+
+        Function.Call(Hash.SET_PED_MOVE_RATE_OVERRIDE, Player, MenuManager.IsSuperSpeed ? SuperRunMultiplier : DefaultMoveRate);
+        Function.Call(Hash.SET_PED_MOVE_RATE_IN_WATER_OVERRIDE, Player, MenuManager.IsSuperSwim ? SuperSwimMultiplier : DefaultMoveRate);
+    }
+
+    private void ApplyPlayerInvincibility()
+    {
+        if (Player == null) return;
+        Player.IsInvincible = MenuManager.IsGodMode;
+    }
+
+    private void ApplyVehicleModifiers()
+    {
+        if (Car == null) return;
+
+        var multiplier = MenuManager.IsSpeedBoost ? SpeedBoostMultiplier : DefaultMoveRate;
+        Car.EngineTorqueMultiplier = multiplier;
+        Car.EnginePowerMultiplier = multiplier;
+
+        if (MenuManager.IsRainbowPaint) VehicleManager.ApplyRainbowPaint(Car);
+    }
+
+    private void ClearWorldVehicles()
+    {
+        foreach (var veh in World.GetAllVehicles())
+        {
+            try
+            {
+                veh.Delete();
+            }
+            catch
+            {
+                // best-effort deletion
+                GTA.UI.Screen.ShowSubtitle("Erreur lors de la suppression d'un véhicule");
+            }
+        }
+    }
+
+    private void PlayUiSound(string soundName, string soundset = "HUD_FRONTEND_DEFAULT_SOUNDSET")
+    {
+        Audio.PlaySoundFrontendAndForget(soundName, soundset);
+    }
+
+    #endregion
 }
