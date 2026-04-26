@@ -2,6 +2,7 @@
 using GTA.Native;
 using Kerl0s_ModMenu.Data;
 using Kerl0s_ModMenu.Managers;
+using Kerl0s_ModMenu.Utils.UI;
 using System;
 using System.Windows.Forms;
 
@@ -15,36 +16,33 @@ public class Program : Script
     private const float DefaultMoveRate = 1.0f;
     private const float SuperRunMultiplier = 10.0f;
     private const float SuperSwimMultiplier = 3.0f;
-    private const float SpeedBoostMultiplier = 250.0f;
-    private const int CashTickIntervalMs = 10000;
+    private const float SpeedBoostMultiplier = 1000.0f;
 
     public Program()
     {
         MenuInitializer.Initialize();
-        MenuManager.SetMenu("Menu Principal");
+        MenuManager.SetMenu(MenuManager.Menus["Menu Principal"]);
 
         Tick += OnTick;
         KeyDown += OnKeyDown;
 
-        GTA.UI.Screen.ShowHelpText("Menu chargé, amuse-toi bien !");
-
-        ClearWorldVehicles();
+        GTA.UI.Screen.ShowHelpText("~g~Menu chargé~w~");
     }
 
     private void OnTick(object sender, EventArgs e)
     {
         UpdatePlayerAndVehicleReferences();
 
-        CashManager.OnTick(CashTickIntervalMs);
-
         if (MenuManager.IsOpen)
         {
             MenuManager.Draw();
         }
 
-        ApplyMovementOverrides();
-        ApplyPlayerInvincibility();
+        ApplyPlayerModifiers();
         ApplyVehicleModifiers();
+        ApplyWeaponModifiers();
+        ApplyWorldModifiers();
+        ApplyExtraModifiers();
     }
 
     private void OnKeyDown(object sender, KeyEventArgs e)
@@ -52,13 +50,7 @@ public class Program : Script
         if (e.KeyCode == Keys.F4)
         {
             MenuManager.ToggleMenu();
-            PlayUiSound("NO");
-            return;
-        }
-
-        if (e.KeyCode == Keys.K)
-        {
-            GiveAllWeapons();
+            PlayUISound("NO");
             return;
         }
 
@@ -66,55 +58,34 @@ public class Program : Script
 
         if (e.KeyCode == Keys.NumPad2)
         {
+            PlayUISound("NAV_UP_DOWN");
             MenuManager.CurrentMenu?.SelectNext();
-            PlayUiSound("NAV_UP_DOWN");
         }
         else if (e.KeyCode == Keys.NumPad8)
         {
+            PlayUISound("NAV_UP_DOWN");
             MenuManager.CurrentMenu?.SelectPrevious();
-            PlayUiSound("NAV_UP_DOWN");
         }
         else if (e.KeyCode == Keys.NumPad5)
         {
+            PlayUISound("OK");
             MenuManager.CurrentMenu?.ActivateSelected();
-            PlayUiSound("OK");
         }
 
-        if (MenuManager.CurrentMenu == MenuManager.Menus["Créer Véhicule"])
+        if (MenuManager.CurrentMenu == MenuManager.Menus["Créer un véhicule"])
         {
-            if (e.KeyCode == Keys.NumPad6)
-            {
-                Pagination.NextPage(VehicleDatabase.vehicles.Count);
-                MenuManager.CurrentMenu.SelectedIndex = 0;
-                PlayUiSound("NAV_UP_DOWN");
-            }
-            else if (e.KeyCode == Keys.NumPad4)
+            int totalItems = VehicleDatabase.Vehicles.Count;
+
+            if (e.KeyCode == Keys.NumPad4)
             {
                 Pagination.PrevPage();
-                MenuManager.CurrentMenu.SelectedIndex = 0;
-                PlayUiSound("NAV_UP_DOWN");
+                MenuInitializer.UpdateCreateVehicleMenu();
             }
 
-            MenuInitializer.UpdateVehicleSpawnerMenu();
-        }
-    }
-
-    /// <summary>
-    /// Gives every weapon enum value to the player. Exceptions are ignored to avoid crashes from invalid enum values.
-    /// </summary>
-    public static void GiveAllWeapons()
-    {
-        var playerPed = Game.Player.Character;
-
-        foreach (WeaponHash weapon in Enum.GetValues(typeof(WeaponHash)))
-        {
-            try
+            if (e.KeyCode == Keys.NumPad6)
             {
-                Function.Call(Hash.GIVE_WEAPON_TO_PED, playerPed, (uint)weapon, 9999, false, true);
-            }
-            catch
-            {
-                // ignore invalid/unsupported enum values
+                Pagination.NextPage(totalItems);
+                MenuInitializer.UpdateCreateVehicleMenu();
             }
         }
     }
@@ -129,16 +100,20 @@ public class Program : Script
 
     private void ApplyMovementOverrides()
     {
-        if (Player == null) return;
-
         Function.Call(Hash.SET_PED_MOVE_RATE_OVERRIDE, Player, MenuManager.IsSuperSpeed ? SuperRunMultiplier : DefaultMoveRate);
         Function.Call(Hash.SET_PED_MOVE_RATE_IN_WATER_OVERRIDE, Player, MenuManager.IsSuperSwim ? SuperSwimMultiplier : DefaultMoveRate);
     }
 
-    private void ApplyPlayerInvincibility()
+    private void ApplyPlayerModifiers()
     {
         if (Player == null) return;
+        
         Player.IsInvincible = MenuManager.IsGodMode;
+        Player.CanRagdoll = !MenuManager.IsGodMode;
+
+        if (MenuManager.IsInfiniteAbility) Game.Player.RefillSpecialAbility();
+
+        ApplyMovementOverrides();
     }
 
     private void ApplyVehicleModifiers()
@@ -146,31 +121,100 @@ public class Program : Script
         if (Car == null) return;
 
         var multiplier = MenuManager.IsSpeedBoost ? SpeedBoostMultiplier : DefaultMoveRate;
+
         Car.EngineTorqueMultiplier = multiplier;
         Car.EnginePowerMultiplier = multiplier;
 
-        if (MenuManager.IsRainbowPaint) VehicleManager.ApplyRainbowPaint(Car);
+        Car.Turbo = multiplier;
+        Car.ThrottlePower = multiplier;
+
+        if (MenuManager.IsSpeedBoost)
+        {
+            Car.MaxSpeed = multiplier;
+        }
+        else { Car.MaxSpeed = 250; }
     }
 
-    private void ClearWorldVehicles()
+    private void ApplyWeaponModifiers()
     {
-        foreach (var veh in World.GetAllVehicles())
+        if (MenuManager.IsInfiniteAmmo)
         {
-            try
+            Game.Player.Character.Weapons.Current.InfiniteAmmo = true;
+        }
+
+        if (MenuManager.IsNoReload)
+        {
+            Game.Player.Character.Weapons.Current.InfiniteAmmoClip = true;
+        }
+
+        if (MenuManager.IsExplosiveBullets)
+        {
+            Function.Call(Hash.SET_EXPLOSIVE_AMMO_THIS_FRAME, Game.Player);
+        }
+
+        if (MenuManager.IsExplosiveMelee)
+        {
+            Function.Call(Hash.SET_EXPLOSIVE_MELEE_THIS_FRAME, Game.Player);
+        }
+
+        if (MenuManager.IsIncendiaryBullets)
+        {
+            Function.Call(Hash.SET_FIRE_AMMO_THIS_FRAME, Game.Player);
+        }
+    }
+
+    private void ApplyWorldModifiers()
+    {
+        if (MenuManager.IsNoPeds)
+        {
+            foreach (var ped in World.GetAllPeds())
             {
-                veh.Delete();
+                if (ped != Player)
+                {
+                    ped.Delete();
+                }
             }
-            catch
+        }
+
+        if (MenuManager.IsNoTraffic)
+        {
+            foreach (var vehicle in World.GetAllVehicles())
             {
-                // best-effort deletion
-                GTA.UI.Screen.ShowSubtitle("Erreur lors de la suppression d'un véhicule");
+                if (vehicle != Car)
+                {
+                    vehicle.Delete();
+                }
+            }
+        }
+
+        Function.Call(Hash.SET_POLICE_IGNORE_PLAYER, Game.Player, MenuManager.IsNoPolice);
+        Function.Call(Hash.SET_DISPATCH_COPS_FOR_PLAYER, Game.Player, !MenuManager.IsNoPolice);
+        if (MenuManager.IsNoPolice) { Game.Player.WantedLevel = 0; Function.Call(Hash.SET_MAX_WANTED_LEVEL, 0); }
+        else { Function.Call(Hash.SET_MAX_WANTED_LEVEL, 5); }
+    }
+
+    private void ApplyExtraModifiers()
+    {
+        if (!MenuManager.IsHudActive) { Function.Call(Hash.HIDE_HUD_AND_RADAR_THIS_FRAME); }
+        Function.Call(Hash.SET_NIGHTVISION, MenuManager.IsNightVision);
+        Function.Call(Hash.SET_SEETHROUGH, MenuManager.IsThermalVision);
+
+        if (MenuManager.IsSpeedometer)
+        {
+            if (Car != null)
+            {
+                UIDrawer.DrawSpeedometer(Car.Speed);
+            }
+            else
+            {
+                UIDrawer.DrawSpeedometer(Player.Speed);
             }
         }
     }
 
-    private void PlayUiSound(string soundName, string soundset = "HUD_FRONTEND_DEFAULT_SOUNDSET")
+    private void PlayUISound(string soundName, string soundset = "HUD_FRONTEND_DEFAULT_SOUNDSET")
     {
-        Audio.PlaySoundFrontendAndForget(soundName, soundset);
+        Audio.PlaySoundFrontend(soundName, soundset);
     }
 
     #endregion

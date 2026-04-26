@@ -30,7 +30,7 @@ namespace Kerl0s_ModMenu.Utils.UI
         public static void DrawSpeedometer(float speedKmh)
         {
             float maxSpeed = 300f; // Maximum speed for scaling
-            float normalizedSpeed = Clamp(speedKmh / maxSpeed, 0f, 1f);
+            float normalizedSpeed = Math.Clamp(speedKmh / maxSpeed, 0f, 1f);
 
 
             // Lerp colors (Green → Yellow → Red)
@@ -70,11 +70,6 @@ namespace Kerl0s_ModMenu.Utils.UI
             Function.Call(Hash.BEGIN_TEXT_COMMAND_DISPLAY_TEXT, "STRING");
             Function.Call(Hash.ADD_TEXT_COMPONENT_SUBSTRING_PLAYER_NAME, $"{(int)speedKmh} km/h");
             Function.Call(Hash.END_TEXT_COMMAND_DISPLAY_TEXT, baseX, baseY - 0.015, 0);
-        }
-
-        private static float Clamp(float value, float min, float max)
-        {
-            return (value < min) ? min : (value > max) ? max : value;
         }
     }
 }

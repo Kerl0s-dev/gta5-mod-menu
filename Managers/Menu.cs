@@ -9,6 +9,7 @@ namespace Kerl0s_ModMenu.Managers
     public class Menu
     {
         public string Name { get; set; }
+        public Menu ParentMenu { get; set; } = null;
         public Color HeaderColor { get; set; }
         public List<string> Items { get; set; }
         public List<Action> Actions { get; set; }
@@ -16,13 +17,15 @@ namespace Kerl0s_ModMenu.Managers
 
         public int SelectedIndex { get; set; } = 0;
 
-        public Menu(string name, Color headerColor, IEnumerable<string> items, IEnumerable<Action> actions = null)
+        public Menu(string name, Menu parentMenu, Color headerColor, Dictionary<string, Action> items)
         {
             Name = name;
+            ParentMenu = parentMenu;
             HeaderColor = headerColor;
-            Items = new List<string>(items);
+            Items = new List<string>(items.Keys);
+            Actions = new List<Action>(items.Values);
 
-            if (actions == null)
+            if (Actions == null)
             {
                 Actions = new List<Action>(new Action[Items.Count]);
                 for (int i = 0; i < Actions.Count; i++)
@@ -30,7 +33,7 @@ namespace Kerl0s_ModMenu.Managers
             }
             else
             {
-                Actions = new List<Action>(actions);
+                Actions = new List<Action>(items.Values);
 
                 while (Actions.Count < Items.Count)
                     Actions.Add(() => { });
@@ -53,11 +56,11 @@ namespace Kerl0s_ModMenu.Managers
             const float startY = 0.09f;
             const float spacing = 0.05f;
 
-            UIDrawer.DrawHeader($"KMM V2 - {Name}", 1, .6f, HeaderColor, 255, startX, startY - 0.05f);
+            UIDrawer.DrawHeader($"{Name}", 1, .6f, HeaderColor, 255, startX, startY - 0.05f);
 
             for (int i = 0; i < Items.Count; i++)
             {
-                var color = (i == SelectedIndex) ? Color.Gray : Color.Black;
+                var color = (i == SelectedIndex) ? HeaderColor : Color.Black;
                 UIDrawer.DrawHeader(Items[i], 4, 0.5f, color, 100, startX, startY + (i * spacing));
             }
         }

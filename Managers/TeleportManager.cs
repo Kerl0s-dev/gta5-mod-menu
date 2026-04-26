@@ -15,7 +15,7 @@ namespace Kerl0s_ModMenu.Managers
 
             if (World.WaypointBlip == null)
             {
-                Notification.PostTicker("~r~MARKER NOT SET~n~~w~Please set a waypoint on the map", true);
+                Notification.Show("~r~MARKER NOT SET~n~~w~Please set a waypoint on the map", true);
                 return;
             }
 
@@ -39,6 +39,20 @@ namespace Kerl0s_ModMenu.Managers
                     playerPed.Position = new Vector3(pos.X, pos.Y, 1000f);
             }
 
+            Script.Wait(250);
+            Function.Call(Hash.DO_SCREEN_FADE_IN, 250);
+        }
+
+        public static void TeleportToCoords(float x, float y, float z)
+        {
+            Ped playerPed = Game.Player.Character;
+            Vehicle playerVehicle = Game.Player.Character.CurrentVehicle;
+            Function.Call(Hash.DO_SCREEN_FADE_OUT, 250);
+            Script.Wait(250);
+            if (playerPed.IsInVehicle())
+                playerVehicle.Position = new Vector3(x, y, z);
+            else
+                playerPed.Position = new Vector3(x, y, z);
             Script.Wait(250);
             Function.Call(Hash.DO_SCREEN_FADE_IN, 250);
         }

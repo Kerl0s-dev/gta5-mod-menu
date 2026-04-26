@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using GTA;
 
 namespace Kerl0s_ModMenu.Managers
 {
@@ -15,78 +14,50 @@ namespace Kerl0s_ModMenu.Managers
         // Menu open state
         public static bool IsOpen { get; set; } = false;
 
-        //
-        // Toggle flags
-        // Keep the original fields for binary/backwards compatibility (ref usage),
-        // but expose PascalCase properties that wrap them for clearer, modern usage.
-        //
-        [Obsolete("Use MenuManager.IsGodMode property instead", false)]
-        public static bool isGodMode = false;
-        public static bool IsGodMode
+        #region Player
+        public static bool IsGodMode = false;
+        public static bool IsSuperSpeed = false;
+        public static bool IsSuperSwim = false;
+        public static bool IsInfiniteAbility = false;
+        #endregion
+        #region Vehicle
+        public static bool IsSpeedBoost = false;
+        public static bool IsSpeedometer = false;
+        #endregion
+        #region Weapon
+        public static bool IsInfiniteAmmo = false;
+        public static bool IsNoReload = false;
+        public static bool IsExplosiveBullets = false;
+        public static bool IsExplosiveMelee = false;
+        public static bool IsIncendiaryBullets = false;
+        #endregion
+        #region World
+        public static bool IsNoPolice = false;
+        public static bool IsNoTraffic = false;
+        public static bool IsNoPeds = false;
+        #endregion
+        #region Extra
+        public static bool IsHudActive = true;
+        public static bool IsFreeCamera = false;
+        public static bool IsNightVision = false;
+        public static bool IsThermalVision = false;
+        #endregion
+
+        public static void SetMenu(Menu menu)
         {
-            get => isGodMode;
-            set => isGodMode = value;
-        }
+            if (menu == null) return;
 
-        [Obsolete("Use MenuManager.IsSuperSpeed property instead", false)]
-        public static bool isSuperSpeed = false;
-        public static bool IsSuperSpeed
-        {
-            get => isSuperSpeed;
-            set => isSuperSpeed = value;
-        }
-
-        [Obsolete("Use MenuManager.IsSuperSwim property instead", false)]
-        public static bool isSuperSwim = false;
-        public static bool IsSuperSwim
-        {
-            get => isSuperSwim;
-            set => isSuperSwim = value;
-        }
-
-        [Obsolete("Use MenuManager.IsSpeedBoost property instead", false)]
-        public static bool isSpeedBoost = false;
-        public static bool IsSpeedBoost
-        {
-            get => isSpeedBoost;
-            set => isSpeedBoost = value;
-        }
-
-        [Obsolete("Use MenuManager.IsRainbowPaint property instead", false)]
-        public static bool isRainbowPaint = false;
-        public static bool IsRainbowPaint
-        {
-            get => isRainbowPaint;
-            set => isRainbowPaint = value;
-        }
-
-        [Obsolete("Use MenuManager.HudActive property instead", false)]
-
-        public static bool hudActive = true;
-        public static bool HudActive
-        {
-            get => hudActive;
-            set => hudActive = value;
-        }
-
-        public static void SetMenu(string name)
-        {
-            if (string.IsNullOrEmpty(name)) return;
-
-            if (Menus.ContainsKey(name))
+            CurrentMenu = menu;
+            if (CurrentMenu != null)
             {
-                CurrentMenu = Menus[name];
-                if (CurrentMenu != null)
-                {
-                    CurrentMenu.SelectedIndex = 0;
-                }
+                CurrentMenu.SelectedIndex = 0;
             }
         }
 
         public static void ToggleMenu()
         {
             IsOpen = !IsOpen;
-            SetMenu("Menu Principal");
+            SetMenu(Menus.ContainsKey("Menu Principal") ? Menus["Menu Principal"] : null);
             if (CurrentMenu != null) CurrentMenu.SelectedIndex = 0;
         }
 
@@ -99,15 +70,13 @@ namespace Kerl0s_ModMenu.Managers
         }
 
         // Backwards-compatible method: toggles a field passed by ref and updates the menu label.
-        public static void ToggleOption(ref bool flag, string menuKey, int optionIndex, string baseLabel)
+        public static void ToggleOption(ref bool flag, Menu menu, int optionIndex, string baseLabel)
         {
-            if (!Menus.ContainsKey(menuKey))
+            if (menu == null)
             {
-                GTA.UI.Screen.ShowSubtitle($"Menu {menuKey} non trouvé !");
+                GTA.UI.Screen.ShowSubtitle("Menu non trouvé !");
                 return;
             }
-
-            var menu = Menus[menuKey];
 
             if (menu?.Items == null || optionIndex < 0 || optionIndex >= menu.Items.Count)
             {
@@ -120,7 +89,7 @@ namespace Kerl0s_ModMenu.Managers
         }
 
         // Preferred overload: use getter/setter delegates instead of ref for safer encapsulation.
-        public static void ToggleOption(string menuKey, int optionIndex, string baseLabel, Func<bool> getter, Action<bool> setter)
+        public static void ToggleOption(Menu menu, int optionIndex, string baseLabel, Func<bool> getter, Action<bool> setter)
         {
             if (getter == null || setter == null)
             {
@@ -128,13 +97,11 @@ namespace Kerl0s_ModMenu.Managers
                 return;
             }
 
-            if (!Menus.ContainsKey(menuKey))
+            if (menu == null)
             {
-                GTA.UI.Screen.ShowSubtitle($"Menu {menuKey} non trouvé !");
+                GTA.UI.Screen.ShowSubtitle("Menu non trouvé !");
                 return;
             }
-
-            var menu = Menus[menuKey];
 
             if (menu?.Items == null || optionIndex < 0 || optionIndex >= menu.Items.Count)
             {
