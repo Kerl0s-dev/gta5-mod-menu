@@ -133,6 +133,9 @@ public class Program : Script
             Car.MaxSpeed = multiplier;
         }
         else { Car.MaxSpeed = 250; }
+
+        if (MenuManager.IsInvisible) { Car.IsVisible = false; Player.IsVisible = true; }
+        else { Car.IsVisible = true; }
     }
 
     private void ApplyWeaponModifiers()

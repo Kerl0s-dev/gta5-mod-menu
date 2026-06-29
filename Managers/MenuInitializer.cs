@@ -73,6 +73,7 @@ namespace Kerl0s_ModMenu.Managers
                     { "Boost de Vitesse ~r~OFF", () => { MenuManager.ToggleOption(ref MenuManager.IsSpeedBoost, vehicleMenu, 0, "Boost de Vitesse"); } },
                     { "Réparer le véhicule", () => { if (Game.Player.Character.CurrentVehicle != null) Game.Player.Character.CurrentVehicle.Repair(); } },
                     { "Créer un véhicule", () => { Pagination.Reset(); UpdateCreateVehicleMenu(); MenuManager.SetMenu(createVehicleMenu); } },
+                    { "Rendre le véhicule invisible ~r~OFF", () => { MenuManager.ToggleOption(ref MenuManager.IsInvisible, vehicleMenu, 3, "Rendre le véhicule invisible"); } },
                     { "~y~Retour", () => MenuManager.SetMenu(mainMenu) }
                 }
             );

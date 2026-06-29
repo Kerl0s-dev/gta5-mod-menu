@@ -23,6 +23,7 @@ namespace Kerl0s_ModMenu.Managers
         #region Vehicle
         public static bool IsSpeedBoost = false;
         public static bool IsSpeedometer = false;
+        public static bool IsInvisible = false;
         #endregion
         #region Weapon
         public static bool IsInfiniteAmmo = false;
